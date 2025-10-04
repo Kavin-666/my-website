@@ -1,1 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Space Runner — Mini Professional Game</title>
+  <style>
+    :root{--bg:#05020b;--accent:#7be2ff;--accent2:#ff7bd1;--glass:rgba(255,255,255,0.06)}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{
+      background: radial-gradient(1200px 600px at 10% 20%, rgba(123,226,255,0.06), transparent),
+                  radial-gradient(800px 500px at 90% 80%, rgba(255,123,209,0.06), transparent),
+                  var(--bg);
+      color:#e8f7ff;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box
+    }
+    .game-shell{width:100%;max-width:1100px;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(3,8,20,0.7);display:grid;grid-template-columns:1fr 320px}
+    .stage{background:linear-gradient(180deg,#021024 0%, #001025 60%);position:relative;min-height:620px}
+    canvas{display:block;width:100%;height:100%;background:transparent}
 
+    .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent 35%);padding:18px;backdrop-filter:blur(6px)}
+    .title{font-weight:700;font-size:20px;margin:0 0 8px}
+    .hud{display:flex;flex-direction:column;gap:12px}
+    .panel{background:var(--glass);padding:12px;border-radius:10px}
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#041425;font-weight:700;border:none;cursor:pointer}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .stat{display:flex;justify-content:space-between;align-items:center;font-size:14px}
+    .small{font-size:12px;color:rgba(255,255,255,0.7)}
+    .footer{margin-top:12px;font-size:12px;color:rgba(255,255,255,0.55)}
+
+    /* On-screen touch controls */
+    .touch-controls{position:absolute;left:14px;bottom:18px;display:flex;gap:10px}
+    .touch-button{width:64px;height:64px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));display:flex;align-items:center;justify-content:center;font-weight:700;user-select:none}
+
+    /* particle spark animation for sidebar */
+    .brand{display:flex;align-items:center;gap:8px}
+    .logo{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#041425}
+
+    @media (max-width:900px){.game-shell{grid-template-columns:1fr} .sidebar{order:2;width:100%;}}
+  </style>
+</head>
+<body>
+  <div class="game-shell">
+    <section class="stage">
+      <canvas id="gameCanvas"></canvas>
+      <div class="touch-controls" id="touchControls" style="display:none">
+        <div class="touch-button" id="leftBtn">◀</div>
+        <div class="touch-button" id="upBtn">▲</div>
+        <div class="touch-button" id="downBtn">▼</div>
+        <div class="touch-button" id="shootBtn">●</div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">SR</div>
+        <div>
+          <div class="title">Space Runner</div>
+          <div class="small">A compact, polished HTML5 canvas game</div>
+        </div>
+      </div>
+
+      <div class="hud" style="margin-top:14px">
+        <div class="panel">
+          <div class="stat"><span>Score</span><strong id="score">0</strong></div>
+          <div class="stat"><span>High</span><strong id="high">0</strong></div>
+          <div class="stat"><span>Lives</span><strong id="lives">3</strong></div>
+        </div>
+
+        <div class="panel">
+          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+            <div class="small">Difficulty</div>
+            <div>
+              <select id="difficulty">
+                <option value="0.9">Easy</option>
+                <option value="1">Normal</option>
+                <option value="1.2">Hard</option>
+                <option value="1.5">Insane</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="startBtn">Start</button>
+            <button class="btn" id="pauseBtn">Pause</button>
+            <button class="btn" id="restartBtn">Restart</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="small">Tips</div>
+          <ul style="margin:8px 0 0 16px;padding:0;line-height:1.6;color:rgba(255,255,255,0.8)">
+            <li>Move with arrow keys or WASD</li>
+            <li>Hold Space to rapid-fire (auto-cooldown)</li>
+            <li>Collect blue power orbs for +score</li>
+          </ul>
+        </div>
+
+        <div class="footer">Built with Canvas · Responsive · No external assets</div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+  // Professional-ish Canvas Game: Space Runner
+  // Single-file, no external assets. Uses requestAnimationFrame, particles, parallax background, sound.
+
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  let W = canvas.width = Math.floor(canvas.clientWidth * devicePixelRatio);
+  let H = canvas.height = Math.floor((canvas.clientHeight || 620) * devicePixelRatio);
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const scoreEl = document.getElementById('score');
+  const highEl = document.getElementById('high');
+  const livesEl = document.getElementById('lives');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const difficultySelect = document.getElementById('difficulty');
+
+  let DPR = window.devicePixelRatio || 1;
+  function resize(){
+    W = canvas.width = Math.floor(canvas.clientWidth * DPR);
+    H = canvas.height = Math.floor(canvas.clientHeight * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+
+  // Game state
+  let running = false, paused = false;
+  let score = 0, high = +(localStorage.getItem('sr.high') || 0), lives = 3;
+  let lastTime = 0, spawnTimer = 0, enemySpawnInterval = 1200; // ms
+  let bullets = [], enemies = [], particles = [], orbs = [];
+  let keys = {};
+  const canvasRect = () => canvas.getBoundingClientRect();
+
+  // Player
+  const player = {
+    x: 140, y: 300, w: 42, h: 26, speed: 320, cooldown: 0, maxCooldown: 10, angle:0
+  };
+
+  function resetGame(){
+    score = 0; lives = 3; bullets = []; enemies=[]; particles=[]; orbs=[]; spawnTimer=0; enemySpawnInterval=1200;
+    player.x = 140; player.y = 300; player.cooldown = 0;
+    running = true; paused = false; lastTime = performance.now();
+  }
+
+  // Utility
+  function rand(min, max){return Math.random()*(max-min)+min}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+
+  // Particles
+  function spawnParticle(x,y,opts={}){
+    particles.push({x,y,vx:rand(-1.6,1.6)*(opts.speed||1.5),vy:rand(-2.2, -0.2)*(opts.speed||1.5),life:rand(40,120),t:0,size:rand(1,4),color:opts.color||'rgba(255,255,255,0.9)'});
+  }
+
+  // Orbs (collectibles)
+  function spawnOrb(x,y){ orbs.push({x,y,r:8,vy:rand(-0.6,0.6),vx:rand(-0.3,0.3),t:0}) }
+
+  // Enemies
+  function spawnEnemy(){
+    const h = rand(22,54); const y = rand(60, (canvas.clientHeight||620)-60);
+    const speed = rand(90,220) * Number(difficultySelect.value);
+    enemies.push({x: (canvas.clientWidth||900)+40, y, w: rand(36,74), h, vx: -speed, hp: Math.ceil(rand(1,3)*Number(difficultySelect.value))});
+  }
+
+  // Bullets
+  function shoot(x,y,dir=1){ bullets.push({x,y,vx:600*dir,vy:0,w:8,h:4,life:0}) }
+
+  // Sound: simple click shooter using WebAudio
+  const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  function tone(freq,dur,vol=0.03){
+    try{
+      const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+      o.type='sine'; o.frequency.value = freq; g.gain.value = vol; o.connect(g); g.connect(audioCtx.destination);
+      o.start(); g.gain.setValueAtTime(vol, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur/1000);
+      o.stop(audioCtx.currentTime + dur/1000 + 0.02);
+    } catch(e){}
+  }
+
+  // Collision AABB
+  function coll(a,b){return a.x < b.x + b.w && a.x + (a.w||a.r*2) > b.x && a.y < b.y + b.h && a.y + (a.h||a.r*2) > b.y}
+
+  // Game loop
+  function update(dt){
+    if(paused || !running) return;
+
+    // Player movement
+    const speed = player.speed * dt;
+    if(keys.ArrowUp || keys.w) player.y -= speed;
+    if(keys.ArrowDown || keys.s) player.y += speed;
+    if(keys.ArrowLeft || keys.a) player.x -= speed;
+    if(keys.ArrowRight || keys.d) player.x += speed;
+    player.y = clamp(player.y, 30, canvas.clientHeight - 30);
+    player.x = clamp(player.x, 18, canvas.clientWidth - 120);
+
+    // Firing
+    if((keys.Space || keys[' ']) && player.cooldown <= 0){ shoot(player.x + player.w, player.y); player.cooldown = player.maxCooldown; tone(900,30,0.02) }
+    if(player.cooldown > 0) player.cooldown -= 1;
+
+    // Bullets
+    for(let i=bullets.length-1;i>=0;i--){
+      const b = bullets[i]; b.x += b.vx * dt; b.life += dt*1000;
+      // offscreen
+      if(b.x > canvas.clientWidth + 100) bullets.splice(i,1);
+    }
+
+    // Enemies
+    spawnTimer += dt*1000;
+    if(spawnTimer > enemySpawnInterval){ spawnEnemy(); spawnTimer = 0; enemySpawnInterval = rand(700,1600)/Number(difficultySelect.value); }
+    for(let i=enemies.length-1;i>=0;i--){
+      const e = enemies[i]; e.x += e.vx * dt;
+      // enemy fires occasionally -> spawn small bullets
+      if(Math.random() < 0.002*dt*1000){ spawnParticle(e.x,e.y,{color:'rgba(255,120,120,0.9)',speed:1}) }
+      // collision with bullets
+      for(let j=bullets.length-1;j>=0;j--){
+        const b = bullets[j]; if(coll(b,{x:e.x,y:e.y,w:e.w,h:e.h})){ bullets.splice(j,1); e.hp -= 1; spawnParticle(b.x,b.y,{color:'rgba(255,240,100,0.95)',speed:2}); score += 12; }
+      }
+      if(e.hp <= 0){ // explode
+        for(let k=0;k<18;k++) spawnParticle(e.x + e.w/2, e.y + e.h/2, {color:'rgba(255,150,20,0.9)', speed:2});
+        if(Math.random() < 0.28) spawnOrb(e.x,e.y);
+        enemies.splice(i,1); score += 30; tone(400,60,0.03)
+      } else if(e.x + e.w < -60){ enemies.splice(i,1); lives -= 1; tone(120,180,0.03); }
+    }
+
+    // Orbs collect
+    for(let i=orbs.length-1;i>=0;i--){ const o = orbs[i]; o.x += o.vx; o.y += o.vy; o.t += dt;
+      if(Math.hypot((player.x+player.w/2)-(o.x), (player.y)-(o.y)) < 36){ score += 80; for(let k=0;k<12;k++) spawnParticle(o.x,o.y,{color:'rgba(120,220,255,0.9)'}); orbs.splice(i,1); tone(1200,40,0.02) }
+      if(o.x < -60 || o.x > canvas.clientWidth + 60) orbs.splice(i,1);
+    }
+
+    // Particles update
+    for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x += p.vx * dt * 60; p.y += p.vy * dt * 60; p.vy += 0.04; p.t += dt*1000; if(p.t > p.life) particles.splice(i,1); }
+
+    // Score and UI updates
+    scoreEl.textContent = Math.floor(score);
+    livesEl.textContent = lives;
+    if(score > high){ high = Math.floor(score); highEl.textContent = high; localStorage.setItem('sr.high', high); }
+
+    if(lives <= 0){ running = false; showGameOver(); }
+  }
+
+  // Draw
+  function draw(){
+    // Clear with gradient
+    ctx.clearRect(0,0,canvas.clientWidth, canvas.clientHeight);
+
+    // Parallax star layers
+    const t = performance.now()/1000;
+    for(let layer=0;layer<3;layer++){
+      const count = 30 + layer*20;
+      ctx.save(); ctx.globalAlpha = 0.18 - layer*0.04;
+      for(let i=0;i<count;i++){
+        const x = (i*137 + t*20*(layer+1)* (layer===2?0.6:1)) % canvas.clientWidth;
+        const y = ((i*71 + layer*47) % canvas.clientHeight) + Math.sin(t*0.4 + i)*6;
+        ctx.fillStyle = ['#79e6ff','#b3f0ff','#ffffff'][layer];
+        const r = 0.5 + layer*0.4; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Draw player (smooth tilt)
+    ctx.save(); ctx.translate(player.x, player.y);
+    // exhaust thrust
+    for(let i=0;i<8;i++){ const p = Math.random()*6 + 6; ctx.globalAlpha = 0.06; ctx.fillRect(-p, Math.random()*10-3, Math.random()*8+8, 2); }
+    ctx.rotate(player.angle * Math.PI / 180);
+    // ship body
+    ctx.fillStyle = '#9fecff'; ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(34,0); ctx.lineTo(0,12); ctx.closePath(); ctx.fill();
+    // cockpit
+    ctx.fillStyle = '#041425'; ctx.beginPath(); ctx.ellipse(8,0,8,6,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // Draw bullets
+    ctx.save(); ctx.fillStyle = '#ffd86b'; bullets.forEach(b=>{ ctx.fillRect(b.x, b.y-3, b.w, b.h); }); ctx.restore();
+
+    // Draw enemies
+    enemies.forEach(e=>{
+      ctx.save(); ctx.translate(e.x,e.y);
+      ctx.fillStyle = '#ff9f9f'; ctx.fillRect(0,0,e.w,e.h);
+      ctx.fillStyle = '#c93f3f'; ctx.fillRect(6,6,e.w-12,Math.max(4,e.h-12));
+      ctx.restore();
+    });
+
+    // Orbs
+    orbs.forEach(o=>{ ctx.save(); ctx.beginPath(); ctx.fillStyle = 'rgba(110,210,255,0.98)'; ctx.arc(o.x,o.y,o.r,0,Math.PI*2); ctx.fill(); ctx.restore(); });
+
+    // Particles
+    particles.forEach(p=>{ ctx.save(); ctx.globalAlpha = clamp(1 - p.t/p.life, 0, 1); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); ctx.restore(); });
+
+    // HUD crosshair
+    ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = '#fff'; ctx.fillRect(player.x+player.w/2+10, player.y-10, 2,20); ctx.fillRect(player.x+player.w/2-10, player.y, 20,2); ctx.restore();
+
+    // subtle vignette
+    const g = ctx.createLinearGradient(0,0,0,canvas.clientHeight); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.12)'); ctx.fillStyle = g; ctx.fillRect(0,0,canvas.clientWidth, canvas.clientHeight);
+  }
+
+  function loop(now){
+    const dt = Math.min(0.033, (now - lastTime) / 1000);
+    update(dt);
+    draw();
+    lastTime = now;
+    requestAnimationFrame(loop);
+  }
+
+  // Controls
+  window.addEventListener('keydown', e=>{ if(e.code==='Space') e.preventDefault(); keys[e.key] = true; if(!running && (e.key==='Enter' || e.key===' ')) startGame(); });
+  window.addEventListener('keyup', e=>{ keys[e.key] = false; });
+
+  // Mouse / touch aiming + fire
+  canvas.addEventListener('pointerdown', (ev)=>{ const r = canvasRect(); const mx = ev.clientX - r.left; const my = ev.clientY - r.top; // reposition player towards pointer
+    player.x = clamp(mx-10, 18, canvas.clientWidth-120); player.y = clamp(my, 30, canvas.clientHeight-30); shoot(player.x + player.w, player.y); tone(950,30,0.02);
+  });
+
+  // Touch UI show/hide
+  function setupTouch(){
+    const tc = document.getElementById('touchControls'); if('ontouchstart' in window){ tc.style.display='flex'; }
+    const leftBtn = document.getElementById('leftBtn'); const upBtn = document.getElementById('upBtn'); const downBtn = document.getElementById('downBtn'); const shootBtn = document.getElementById('shootBtn');
+    leftBtn.addEventListener('pointerdown', ()=>keys.ArrowLeft=true); leftBtn.addEventListener('pointerup', ()=>keys.ArrowLeft=false);
+    upBtn.addEventListener('pointerdown', ()=>keys.ArrowUp=true); upBtn.addEventListener('pointerup', ()=>keys.ArrowUp=false);
+    downBtn.addEventListener('pointerdown', ()=>keys.ArrowDown=true); downBtn.addEventListener('pointerup', ()=>keys.ArrowDown=false);
+    shootBtn.addEventListener('pointerdown', ()=>keys.Space=true); shootBtn.addEventListener('pointerup', ()=>keys.Space=false);
+  }
+
+  // UI: start/pause/restart
+  startBtn.addEventListener('click', ()=>startGame());
+  pauseBtn.addEventListener('click', ()=>{ paused = !paused; pauseBtn.textContent = paused ? 'Resume' : 'Pause'; });
+  restartBtn.addEventListener('click', ()=>{ resetGame(); });
+
+  function startGame(){ if(!running){ resetGame(); lastTime = performance.now(); requestAnimationFrame(loop); } }
+
+  function showGameOver(){
+    ctx.save(); ctx.fillStyle='rgba(3,6,12,0.75)'; ctx.fillRect(0,0,canvas.clientWidth, canvas.clientHeight);
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.font='36px system-ui'; ctx.fillText('GAME OVER', canvas.clientWidth/2, canvas.clientHeight/2 - 10);
+    ctx.font='18px system-ui'; ctx.fillText('Final score: ' + Math.floor(score), canvas.clientWidth/2, canvas.clientHeight/2 + 24);
+    ctx.restore();
+  }
+
+  // init
+  resize(); setupTouch(); lastTime = performance.now(); requestAnimationFrame(loop);
+
+  // small animation: gently change player angle based on mouse
+  window.addEventListener('mousemove', e=>{
+    const r = canvasRect(); const mx = e.clientX - r.left; const my = e.clientY - r.top; const dx = mx - (player.x+player.w/2); const dy = my - player.y; player.angle = clamp(dx/8, -18, 18);
+  });
+
+  // keep canvas sizing correct after CSS layout settles
+  setTimeout(resize,120);
+
+  // expose a simple debug function
+  window._sr = {start:startGame, reset:resetGame};
+  </script>
+</body>
+</html>
