@@ -1,1 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Your Name — Portfolio</title>
+  <!-- Favicon (simple SVG data URI) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23007ACC'/%3E%3Ctext x='50' y='57' font-size='50' text-anchor='middle' font-family='Arial' fill='white'%3EY%3C/text%3E%3C/svg%3E">
+  <meta name="description" content="Personal portfolio — replace content with your details using the 'Edit Details' panel." />
 
+  <style>
+    :root{
+      --bg:#0f1724; --card:#111827; --muted:#9AA4B2; --accent:#00AEEF; --glass: rgba(255,255,255,0.03);
+      --glass-2: rgba(255,255,255,0.02);
+      --radius:16px;
+      --shadow: 0 6px 18px rgba(2,6,23,0.6);
+    }
+    [data-theme='light']{ --bg:#f6f8fb; --card:#ffffff; --muted:#54606d; --accent:#007acc; --glass: rgba(0,0,0,0.04); --glass-2: rgba(0,0,0,0.02); --shadow: 0 6px 18px rgba(12,12,12,0.06);} 
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial; background:linear-gradient(180deg,var(--bg), #061023 120%); color:var(--muted);}
+
+    header{position:sticky;top:12px;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;margin:12px;border-radius:14px;background:var(--glass);backdrop-filter: blur(6px);box-shadow:var(--shadow)}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;background:linear-gradient(135deg,var(--accent), #7b61ff);border-radius:10px;display:grid;place-items:center;color:white;font-weight:700}
+    nav{display:flex;gap:14px;align-items:center}
+    nav a{color:var(--muted);text-decoration:none;font-weight:600}
+
+    .cta{display:flex;gap:10px}
+    .btn{padding:10px 14px;border-radius:12px;background:linear-gradient(90deg,var(--accent),#6f7bff);color:white;border:0;cursor:pointer;font-weight:700;box-shadow:0 6px 16px rgba(0,0,0,0.25);transition:transform .18s ease, box-shadow .18s}
+    .btn:active{transform:translateY(1px)}
+    .ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+
+    main{max-width:1100px;margin:28px auto;padding:20px}
+
+    .hero{display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:center}
+    .intro h1{margin:0;font-size:32px;color:white}
+    .intro p{color:var(--muted);line-height:1.5}
+    .hero-card{background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.02));padding:18px;border-radius:18px;box-shadow:var(--shadow);}
+
+    .profile-photo{width:100%;height:320px;border-radius:12px;background-image:linear-gradient(135deg, rgba(0,0,0,0.15), rgba(255,255,255,0.02));display:grid;place-items:center;color:white;font-size:18px}
+    .skills{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .skill{padding:6px 10px;border-radius:999px;background:var(--glass-2);color:var(--muted);font-weight:700}
+
+    section.projects{margin-top:26px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .card{border-radius:12px;padding:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));transition:transform .25s ease, box-shadow .25s;overflow:hidden}
+    .card:hover{transform:translateY(-8px);box-shadow:0 12px 30px rgba(0,0,0,0.45)}
+    .proj-thumb{height:140px;border-radius:10px;background:linear-gradient(135deg, rgba(0,0,0,0.2), rgba(255,255,255,0.02));display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700}
+    .tech{font-size:13px;color:var(--muted);margin-top:8px}
+    .proj-actions{display:flex;gap:8px;margin-top:10px}
+
+    footer{margin-top:40px;padding:18px;border-radius:12px;background:var(--glass);display:flex;justify-content:space-between;align-items:center}
+
+    /* Contact form */
+    .contact{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;background:var(--glass-2);padding:18px;border-radius:12px;gap:12px}
+    input,textarea,select{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);resize:vertical}
+
+    /* Edit panel */
+    .editor-toggle{position:fixed;right:18px;bottom:18px}
+    .editor{position:fixed;right:18px;bottom:78px;width:360px;max-height:80vh;overflow:auto;padding:14px;border-radius:12px;background:var(--card);box-shadow:var(--shadow)}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:10px}
+
+    /* Responsive */
+    @media (max-width:900px){
+      .hero{grid-template-columns:1fr}
+      .grid{grid-template-columns:repeat(2,1fr)}
+      .profile-photo{height:240px}
+    }
+    @media (max-width:600px){
+      header{padding:8px 12px}
+      .grid{grid-template-columns:1fr}
+      .editor{right:8px;left:8px;width:auto}
+      nav{display:none}
+    }
+
+    /* small animations */
+    .fade-in{animation:fadeInUp .6s ease both}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+    /* progress bars */
+    .bar{height:10px;background:var(--glass-2);border-radius:999px;overflow:hidden}
+    .bar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent), #7b61ff);transform-origin:left;transition:width .6s ease}
+
+    /* subtle hover for links */
+    a.icon{display:inline-flex;align-items:center;gap:8px}
+  </style>
+</head>
+<body data-theme="dark">
+
+  <header class="fade-in">
+    <div class="brand">
+      <div class="logo">Y</div>
+      <div>
+        <div style="font-weight:800;color:white">Your Name</div>
+        <div style="font-size:12px;color:var(--muted)">Frontend Developer — Portfolio</div>
+      </div>
+    </div>
+
+    <nav>
+      <a href="#home">Home</a>
+      <a href="#about">About</a>
+      <a href="#projects">Projects</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="cta">
+      <button class="btn ghost" id="themeToggle" title="Toggle dark / light">Custom Mode</button>
+      <button class="btn" id="downloadResume">Download Resume</button>
+      <button class="btn" id="downloadPortfolio">Download Portfolio</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="home" class="hero">
+      <div class="intro">
+        <h1 id="displayName">Hi — I'm <span style="color:var(--accent)" id="nameText">Your Name</span></h1>
+        <p id="roleText">A <strong style="color:white">Frontend Developer</strong> building accessible, performance-focused web experiences. I build clean UI and enjoy solving UX problems.</p>
+        <p style="margin-top:12px;">
+          <a class="btn" id="viewProjects">View My Work</a>
+          <a class="btn ghost" id="downloadCV">Download CV</a>
+        </p>
+
+        <div style="margin-top:18px" class="fade-in">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="font-size:13px;color:var(--muted)">Skills:</div>
+            <div class="skills" id="skillsList">
+              <span class="skill">HTML</span>
+              <span class="skill">CSS</span>
+              <span class="skill">JavaScript</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <aside class="hero-card">
+        <div class="profile-photo" aria-hidden="true">Profile photo placeholder
+        </div>
+        <div style="margin-top:12px;">
+          <div style="font-weight:800;color:white">Quick Info</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:8px">Location: Anywhere • Open to work • Email: youremail@example.com</div>
+
+          <div style="margin-top:12px">
+            <div style="font-size:13px;color:var(--muted)">Expertise</div>
+            <div class="bar" style="margin-top:8px"><i style="width:88%"></i></div>
+            <div style="display:flex;gap:10px;margin-top:8px">
+              <div style="font-size:12px;color:var(--muted)">React</div>
+              <div style="font-size:12px;color:var(--muted)">UI</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section id="about" class="fade-in" style="margin-top:26px">
+      <h2 style="color:white">About Me</h2>
+      <p id="bioText">Short bio goes here. Replace me using the "Edit Details" panel on the bottom-right. Talk about yourself in 2–3 sentences.</p>
+
+      <div style="margin-top:12px">
+        <h3 style="color:white">Skills & Proficiency</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:640px">
+          <div>
+            <div style="font-weight:700;color:white">HTML & CSS</div>
+            <div class="bar" style="margin-top:8px"><i style="width:95%"></i></div>
+          </div>
+          <div>
+            <div style="font-weight:700;color:white">JavaScript</div>
+            <div class="bar" style="margin-top:8px"><i style="width:82%"></i></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects" class="projects">
+      <h2 style="color:white">Projects</h2>
+      <div class="grid" id="projectsGrid">
+        <article class="card fade-in">
+          <div class="proj-thumb">Project 1</div>
+          <h3 style="color:white">Project Title 1</h3>
+          <div class="tech">A short description. Tech: HTML, CSS, JS</div>
+          <div class="proj-actions">
+            <a class="btn ghost" href="#" onclick="return false">Live</a>
+            <a class="btn ghost" href="#" onclick="return false">Code</a>
+          </div>
+        </article>
+
+        <article class="card fade-in">
+          <div class="proj-thumb">Project 2</div>
+          <h3 style="color:white">Project Title 2</h3>
+          <div class="tech">A short description. Tech: React, Node</div>
+          <div class="proj-actions">
+            <a class="btn ghost" href="#" onclick="return false">Live</a>
+            <a class="btn ghost" href="#" onclick="return false">Code</a>
+          </div>
+        </article>
+
+        <article class="card fade-in">
+          <div class="proj-thumb">Project 3</div>
+          <h3 style="color:white">Project Title 3</h3>
+          <div class="tech">A short description. Tech: Design, Implementation</div>
+          <div class="proj-actions">
+            <a class="btn ghost" href="#" onclick="return false">Live</a>
+            <a class="btn ghost" href="#" onclick="return false">Code</a>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <section id="contact" style="margin-top:22px">
+      <h2 style="color:white">Contact</h2>
+      <div class="contact">
+        <div>
+          <label for="cname">Name</label>
+          <input id="cname" placeholder="Your name" />
+          <label for="cemail">Email</label>
+          <input id="cemail" placeholder="you@example.com" />
+          <label for="cmessage">Message</label>
+          <textarea id="cmessage" rows="4" placeholder="Hi! I'd like to..." ></textarea>
+          <div style="margin-top:10px">
+            <button class="btn">Send (no backend)</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-weight:800;color:white">Get in touch</div>
+          <div style="margin-top:8px;color:var(--muted)">Email: <a class="icon" href="mailto:youremail@example.com">youremail@example.com</a></div>
+          <div style="margin-top:8px;color:var(--muted)">Links: <a class="icon" href="#">GitHub</a> • <a class="icon" href="#">LinkedIn</a></div>
+
+          <div style="margin-top:16px">
+            <h4 style="color:white">Availability</h4>
+            <div style="font-size:13px;color:var(--muted)">Open to freelance & full-time opportunities</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div style="font-size:13px;color:var(--muted)">© <span id="year"></span> Your Name. All rights reserved.</div>
+      <div style="display:flex;gap:12px">
+        <a href="#" class="icon">Twitter</a>
+        <a href="#" class="icon">GitHub</a>
+        <a href="#" class="icon">LinkedIn</a>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- Editor panel (for asking details and customizing) -->
+  <div class="editor" id="editor">
+    <h3 style="margin:0;color:white">Edit Details</h3>
+    <label>Name</label>
+    <input id="in_name" placeholder="Your Name" value="Your Name" />
+    <label>Role / Tagline</label>
+    <input id="in_role" value="Frontend Developer" />
+    <label>Short bio</label>
+    <textarea id="in_bio">Short bio goes here. Replace me using the "Edit Details" panel on the bottom-right. Talk about yourself in 2–3 sentences.</textarea>
+    <label>Skills (comma separated)</label>
+    <input id="in_skills" value="HTML,CSS,JavaScript" />
+
+    <label>Project 1 Title</label>
+    <input id="p1_title" value="Project Title 1" />
+    <label>Project 1 Desc</label>
+    <input id="p1_desc" value="A short description. Tech: HTML, CSS, JS" />
+
+    <label>Project 2 Title</label>
+    <input id="p2_title" value="Project Title 2" />
+    <label>Project 2 Desc</label>
+    <input id="p2_desc" value="A short description. Tech: React, Node" />
+
+    <label>Project 3 Title</label>
+    <input id="p3_title" value="Project Title 3" />
+    <label>Project 3 Desc</label>
+    <input id="p3_desc" value="A short description. Tech: Design, Implementation" />
+
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" id="applyBtn">Apply</button>
+      <button class="btn ghost" id="resetBtn">Reset</button>
+    </div>
+
+    <div style="margin-top:10px;font-size:12px;color:var(--muted)">When ready, click <strong>Download Portfolio</strong> in the header to save this page as a single HTML file you can host or share.</div>
+  </div>
+
+  <!-- Floating editor toggle -->
+  <div class="editor-toggle">
+    <button class="btn" id="openEditor">Edit Details</button>
+  </div>
+
+  <script>
+    // Populate year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Theme toggle (custom mode)
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', ()=>{
+      const el = document.documentElement;
+      const cur = el.getAttribute('data-theme');
+      el.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+
+    // Editor toggle
+    const editor = document.getElementById('editor');
+    document.getElementById('openEditor').addEventListener('click', ()=>{
+      editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Apply details
+    function applyDetails(){
+      const name = document.getElementById('in_name').value || 'Your Name';
+      const role = document.getElementById('in_role').value || 'Frontend Developer';
+      const bio = document.getElementById('in_bio').value;
+      const skills = (document.getElementById('in_skills').value || '').split(',').map(s => s.trim()).filter(Boolean);
+
+      document.getElementById('nameText').textContent = name;
+      document.getElementById('displayName').firstChild.nodeValue = "Hi — I'm ";
+      document.getElementById('roleText').innerHTML = `A <strong style=\"color:white\">${role}</strong> building accessible, performance-focused web experiences.`;
+      document.getElementById('bioText').textContent = bio;
+
+      const skillsList = document.getElementById('skillsList');
+      skillsList.innerHTML = '';
+      skills.forEach(s=>{ const sp = document.createElement('span'); sp.className='skill'; sp.textContent=s; skillsList.appendChild(sp); });
+
+      // projects
+      for(let i=1;i<=3;i++){
+        const title = document.getElementById('p'+i+'_title').value;
+        const desc = document.getElementById('p'+i+'_desc').value;
+        const card = document.querySelectorAll('#projectsGrid .card')[i-1];
+        if(card){
+          card.querySelector('h3').textContent = title;
+          card.querySelector('.tech').textContent = desc;
+          card.querySelector('.proj-thumb').textContent = title.split(' ')[0] || 'Project';
+        }
+      }
+
+      // small animate
+      document.querySelectorAll('.fade-in').forEach(el=>{ el.animate([{opacity:0, transform:'translateY(10px)'},{opacity:1, transform:'none'}], {duration:450, easing:'ease', fill:'both'}); });
+    }
+
+    document.getElementById('applyBtn').addEventListener('click', applyDetails);
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ location.reload(); });
+
+    // Download resume (example: creates a small PDF-like text file) — in real use replace with actual PDF file or link
+    document.getElementById('downloadResume').addEventListener('click', ()=>{
+      const resumeText = `Resume - ${document.getElementById('in_name').value || 'Your Name'}\n\nProfile:\n${document.getElementById('in_bio').value}\n\nSkills: ${document.getElementById('in_skills').value}`;
+      const blob = new Blob([resumeText], {type:'text/plain'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'resume.txt'; a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    // Download portfolio - saves current HTML as a single file
+    document.getElementById('downloadPortfolio').addEventListener('click', ()=>{
+      // Apply current edits first
+      applyDetails();
+      // clone document and remove editor for a cleaner exported version
+      const clone = document.documentElement.cloneNode(true);
+      // remove editor elements and buttons that shouldn't be in exported page
+      clone.querySelectorAll('.editor, .editor-toggle, #openEditor, #downloadPortfolio, #downloadResume, #applyBtn, #resetBtn, #themeToggle').forEach(n=>n && n.remove());
+      // inline styles are already present; serialize
+      const serialized = '<!doctype html>\n' + clone.outerHTML;
+      const blob = new Blob([serialized], {type:'text/html'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (document.getElementById('in_name').value || 'portfolio') + '.html';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // Smooth scroll for 'View My Work'
+    document.getElementById('viewProjects').addEventListener('click', ()=>{ document.getElementById('projects').scrollIntoView({behavior:'smooth'}); });
+
+    // Initially hide editor on small screens
+    if(window.innerWidth < 700) editor.style.display = 'none';
+
+    // Small accessibility: ensure all images have alt; placeholders used instead
+  </script>
+</body>
+</html>
